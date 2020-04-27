@@ -128,6 +128,7 @@ SRCS(
     Transforms/RollupTransform.cpp
     Transforms/SortingTransform.cpp
     Transforms/TotalsHavingTransform.cpp
+    Transforms/SplittingByHashTransform.cpp
 )
 
 END()
