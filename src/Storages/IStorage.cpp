@@ -53,16 +53,6 @@ const ConstraintsDescription & IStorage::getConstraints() const
     return constraints;
 }
 
-Block IStorage::getSampleBlock() const
-{
-    Block res;
-
-    for (const auto & column : getColumns().getAllPhysical())
-        res.insert({column.type->createColumn(), column.type, column.name});
-
-    return res;
-}
-
 Block IStorage::getSampleBlockWithVirtuals() const
 {
     auto res = getSampleBlock();
@@ -279,21 +269,6 @@ void IStorage::check(const Block & block, bool need_all) const
         }
     }
 }
-
-//void IStorage::setColumns(ColumnsDescription columns_)
-//{
-//    if (columns_.getOrdinary().empty())
-//        throw Exception("Empty list of columns passed", ErrorCodes::EMPTY_LIST_OF_COLUMNS_PASSED);
-//    ColumnsDescription old_virtuals(columns.getVirtuals(), true);
-//
-//    columns = std::move(columns_);
-//
-//    for (const auto & column : old_virtuals)
-//    {
-//        if (!columns.has(column.name))
-//            columns.add(column);
-//    }
-//}
 
 void IStorage::setIndices(IndicesDescription indices_)
 {

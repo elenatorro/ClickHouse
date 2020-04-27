@@ -106,6 +106,9 @@ class Volume;
 using VolumePtr = std::shared_ptr<Volume>;
 struct NamedSession;
 
+struct StorageInMemoryMetadata;
+using StorageMetadataPtr = std::shared_ptr<const StorageInMemoryMetadata>;
+
 
 #if USE_EMBEDDED_COMPILER
 class CompiledExpressionCache;
@@ -115,7 +118,7 @@ class CompiledExpressionCache;
 using ExternalTablesInitializer = std::function<void(Context &)>;
 
 /// Callback for initialize input()
-using InputInitializer = std::function<void(Context &, const StoragePtr &)>;
+using InputInitializer = std::function<void(Context &, const StorageMetadataPtr &)>;
 /// Callback for reading blocks of data from client for function input()
 using InputBlocksReader = std::function<Block(Context &)>;
 

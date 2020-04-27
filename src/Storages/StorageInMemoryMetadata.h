@@ -46,14 +46,10 @@ struct StorageInMemoryMetadata
     const ColumnsDescription & getColumns() const; /// returns combined set of columns
     void setColumns(ColumnsDescription columns_); /// sets only real columns, possibly overwrites virtual ones.
 
-    /// NOTE: these methods should include virtual columns,
-    ///       but should NOT include ALIAS columns (they are treated separately).
-    NameAndTypePair getColumn(const String & column_name) const;
-    bool hasColumn(const String & column_name) const;
     Block getSampleBlock() const; /// ordinary + materialized.
     Block getSampleBlockWithVirtuals(const NamesAndTypesList & virtuals) const; /// ordinary + materialized + virtuals.
     Block getSampleBlockNonMaterialized() const; /// ordinary.
-    Block getSampleBlockForColumns(const Names & column_names) const; /// ordinary + materialized + aliases + virtuals.
+    Block getSampleBlockForColumns(const Names & column_names, const NamesAndTypesList & virtual_columns) const; /// ordinary + materialized + aliases + virtuals.
     /// Verify that all the requested names are in the table and are set correctly:
     /// list of names is not empty and the names do not repeat.
     void check(const Names & column_names, const NamesAndTypesList & virtuals) const;

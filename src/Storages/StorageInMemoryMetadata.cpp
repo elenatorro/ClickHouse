@@ -108,18 +108,6 @@ const ColumnsDescription & StorageInMemoryMetadata::getColumns() const
     return columns;
 }
 
-NameAndTypePair StorageInMemoryMetadata::getColumn(const String & column_name) const
-{
-    /// By default, we assume that there are no virtual columns in the storage.
-    return getColumns().getPhysical(column_name);
-}
-
-bool StorageInMemoryMetadata::hasColumn(const String & column_name) const
-{
-    /// By default, we assume that there are no virtual columns in the storage.
-    return getColumns().hasPhysical(column_name);
-}
-
 Block StorageInMemoryMetadata::getSampleBlock() const
 {
     Block res;
@@ -149,12 +137,16 @@ Block StorageInMemoryMetadata::getSampleBlockNonMaterialized() const
     return res;
 }
 
-Block StorageInMemoryMetadata::getSampleBlockForColumns(const Names & column_names) const
+Block StorageInMemoryMetadata::getSampleBlockForColumns(const Names & column_names, const NamesAndTypesList & virtual_columns) const
 {
     Block res;
 
     NamesAndTypesList all_columns = getColumns().getAll();
     std::unordered_map<String, DataTypePtr> columns_map;
+
+    for (const auto & column : virtual_columns)
+        columns_map.emplace(column.name, column.type);
+
     for (const auto & elem : all_columns)
         columns_map.emplace(elem.name, elem.type);
 
@@ -167,9 +159,9 @@ Block StorageInMemoryMetadata::getSampleBlockForColumns(const Names & column_nam
         }
         else
         {
-            /// Virtual columns.
-            NameAndTypePair elem = getColumn(name);
-            res.insert({elem.type->createColumn(), elem.type, elem.name});
+            throw Exception(
+                "Column " + backQuote(name) + " not found in table ",
+                ErrorCodes::NOT_FOUND_COLUMN_IN_BLOCK);
         }
     }
 

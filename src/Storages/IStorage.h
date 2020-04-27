@@ -141,7 +141,7 @@ public:
     virtual ColumnSizeByName getColumnSizes() const { return {}; }
 
 public: /// thread-unsafe part. lockStructure must be acquired
-    virtual const ColumnsDescription & getColumns() const; /// returns combined set of columns
+    const ColumnsDescription & getColumns() const; /// returns combined set of columns
     //virtual void setColumns(ColumnsDescription columns_); /// sets only real columns, possibly overwrites virtual ones.
     const IndicesDescription & getIndices() const;
 
@@ -153,7 +153,6 @@ public: /// thread-unsafe part. lockStructure must be acquired
     virtual StorageMetadataPtr getInMemoryMetadata() const;
     virtual void setInMemoryMetadata(StorageInMemoryMetadata new_metadata); //new columns
 
-    Block getSampleBlock() const; /// ordinary + materialized.
     Block getSampleBlockWithVirtuals() const; /// ordinary + materialized + virtuals.
     Block getSampleBlockNonMaterialized() const; /// ordinary.
     Block getSampleBlockForColumns(const Names & column_names) const; /// ordinary + materialized + aliases + virtuals.
