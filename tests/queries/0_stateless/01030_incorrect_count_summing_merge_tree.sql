@@ -4,7 +4,7 @@ drop table if exists tst;
 create table tst (timestamp DateTime, val Nullable(Int8)) engine SummingMergeTree partition by toYYYYMM(timestamp) ORDER by (timestamp);
 insert into tst values ('2018-02-01 00:00:00', 1), ('2018-02-02 00:00:00', 2);
 
-select * from tst final;
+select * from tst final order by timestamp;
 
 select '-- 2 2';
 select count() from tst;
