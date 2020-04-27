@@ -1115,7 +1115,7 @@ Pipes MergeTreeDataSelectExecutor::spreadMarkRangesAmongStreamsFinal(
         __builtin_unreachable();
     };
 
-    if (!settings.parallel_final || num_streams <= 1 || query_info.force_tree_shaped_pipeline)
+    if (!settings.parallel_final || num_streams <= 1 || sort_description.empty() || query_info.force_tree_shaped_pipeline)
     {
 
         Pipe pipe(std::move(pipes), get_merging_processor());
