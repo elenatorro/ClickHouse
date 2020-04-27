@@ -39,7 +39,7 @@ create table mult_tab (date Date, value String, version UInt64, sign Int8) engin
 insert into mult_tab select '2018-01-31', 'str_' || toString(number), 0, if(number % 2, 1, -1) from system.numbers limit 10;
 insert into mult_tab select '2018-01-31', 'str_' || toString(number), 1, if(number % 2, -1, 1) from system.numbers limit 10;
 select 'table with 2 blocks final';
-select * from mult_tab final order by date, value, sign;
+select * from mult_tab final order by date, value, version, sign;
 optimize table mult_tab;
 select 'table with 2 blocks optimized';
 select * from mult_tab;
@@ -142,7 +142,7 @@ create table mult_tab (date Date, value String, version UInt64, sign Int8) engin
 insert into mult_tab select '2018-01-31', 'str_' || toString(number), 0, if(number % 2, 1, -1) from system.numbers limit 10;
 insert into mult_tab select '2018-01-31', 'str_' || toString(number), 1, if(number % 2, -1, 1) from system.numbers limit 10;
 select 'table with 2 blocks final';
-select * from mult_tab final order by date, value, sign;
+select * from mult_tab final order by date, value, version, sign;
 optimize table mult_tab;
 select 'table with 2 blocks optimized';
 select * from mult_tab;
