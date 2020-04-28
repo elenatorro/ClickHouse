@@ -72,37 +72,42 @@ static void fillSelector(const WeakHash32 & hash, size_t num_outputs, IColumn::S
     }
 }
 
-static void splitChunk(const Chunk & chunk, IColumn::Selector & selector, size_t num_outputs, Chunks & result_chunks)
+static void splitChunk(
+    const Chunk & chunk, IColumn::Selector & selector, IColumn::Filter & filter, size_t num_outputs, Chunks & result_chunks)
 {
+    size_t num_rows = chunk.getNumRows();
+    size_t num_columns = chunk.getNumColumns();
     const auto & columns = chunk.getColumns();
     result_chunks.resize(num_outputs);
 
-    bool first = true;
-    for (const auto & column : columns)
+    for (size_t output_number = 0; output_number < num_outputs; ++output_number)
     {
-        auto scatter = column->scatter(num_outputs, selector);
+        /// Prepare filter for output.
+        filter.clear();
+        filter.resize_fill(num_rows);
 
-        if (first)
+        ssize_t num_result_rows = 0;
+
+        for (size_t row = 0; row < num_rows; ++row)
         {
-            first = false;
-
-            for (size_t i = 0; i < num_outputs; ++i)
+            if (selector[row] == output_number)
             {
-                size_t num_rows = scatter[i]->size();
-                auto & result_chunk = result_chunks[i];
-                auto res_columns = result_chunk.detachColumns();
-                res_columns.clear();
-                res_columns.reserve(num_outputs);
-                res_columns.emplace_back(std::move(scatter[i]));
-
-                result_chunk.setColumns(std::move(res_columns), num_rows);
+                filter[row] = 1;
+                ++num_result_rows;
             }
         }
-        else
-        {
-            for (size_t i = 0; i < num_outputs; ++i)
-                result_chunks[i].addColumn(std::move(scatter[i]));
-        }
+
+        /// Filter column.
+        auto res_columns = result_chunks[output_number].detachColumns();
+        res_columns.resize(columns.size());
+
+        if (num_result_rows == 0)
+            continue;
+
+        for (size_t column_number = 0; column_number < num_columns; ++column_number)
+            res_columns[column_number] = columns[column_number]->filter(filter, num_result_rows);
+
+        result_chunks[output_number].setColumns(std::move(res_columns), num_result_rows);
     }
 }
 
@@ -117,7 +122,7 @@ void SplittingByHashTransform::transform(Chunk & input_chunk, Chunk & output_chu
 
     calculateWeakHash32(input_chunk, key_columns, hash);
     fillSelector(hash, num_outputs, selector);
-    splitChunk(input_chunk, selector, num_outputs, chunk_info->chunks);
+    splitChunk(input_chunk, selector, filter, num_outputs, chunk_info->chunks);
 }
 
 IProcessor::Status ResizeByHashTransform::prepare()
