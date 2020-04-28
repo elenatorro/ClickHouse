@@ -635,7 +635,7 @@ void SummingSortedAlgorithm::initialize(Chunks chunks)
 void SummingSortedAlgorithm::consume(Chunk & chunk, size_t source_num)
 {
     preprocessChunk(chunk);
-    updateCursor(std::move(chunk), source_num);
+    updateCursor(chunk, source_num);
 }
 
 IMergingAlgorithm::Status SummingSortedAlgorithm::merge()
