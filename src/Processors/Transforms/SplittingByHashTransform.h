@@ -22,7 +22,6 @@ private:
     ColumnNumbers key_columns;
 
     IColumn::Selector selector;
-    IColumn::Filter filter;
     WeakHash32 hash;
 };
 
