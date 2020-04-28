@@ -182,9 +182,10 @@ IProcessor::Status ResizeByHashTransform::prepareGenerate()
     for (auto & output : outputs)
     {
         auto & chunk = output_chunks[chunk_number];
+        auto & was_processed = was_output_processed[chunk_number];
         ++chunk_number;
 
-        if (was_output_processed[chunk_number])
+        if (was_processed)
             continue;
 
         if (!chunk.hasRows())
@@ -202,7 +203,7 @@ IProcessor::Status ResizeByHashTransform::prepareGenerate()
         }
 
         output.pushRef(chunk);
-        was_output_processed[chunk_number] = true;
+        was_processed = true;
     }
 
     if (all_outputs_processed)
