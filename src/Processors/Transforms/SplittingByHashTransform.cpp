@@ -106,16 +106,18 @@ static void splitChunk(const Chunk & chunk, IColumn::Selector & selector, size_t
     }
 }
 
-void SplittingByHashTransform::transform(Chunk & chunk)
+void SplittingByHashTransform::transform(Chunk & input_chunk, Chunk & output_chunk)
 {
-    auto chunk_info = std::make_shared<ChunkInfoWithChunks>();
+    if (!output_chunk.getChunkInfo())
+        output_chunk.setChunkInfo(std::make_shared<ChunkInfoWithChunks>());
 
-    calculateWeakHash32(chunk, key_columns, hash);
+    const auto * chunk_info = typeid_cast<const ChunkInfoWithChunks *>(output_chunk.getChunkInfo().get());
+    if (!chunk_info)
+        throw Exception("ResizeByHashTransform expected ChunkInfo for input chunk", ErrorCodes::LOGICAL_ERROR);
+
+    calculateWeakHash32(input_chunk, key_columns, hash);
     fillSelector(hash, num_outputs, selector);
-    splitChunk(chunk, selector, num_outputs, chunk_info->chunks);
-
-    chunk.clear();
-    chunk.setChunkInfo(std::move(chunk_info));
+    splitChunk(input_chunk, selector, num_outputs, chunk_info->chunks);
 }
 
 IProcessor::Status ResizeByHashTransform::prepare()
@@ -164,7 +166,7 @@ IProcessor::Status ResizeByHashTransform::prepareConsume()
     if (!input.hasData())
         return Status::NeedData;
 
-    input_chunk = input.pull();
+    input.pull(input_chunk);
 
     /// Next phase after work() is generating.
     is_generating_phase = true;
@@ -182,6 +184,9 @@ IProcessor::Status ResizeByHashTransform::prepareGenerate()
         auto & chunk = output_chunks[chunk_number];
         ++chunk_number;
 
+        if (was_output_processed[chunk_number])
+            continue;
+
         if (!chunk.hasRows())
             continue;
 
@@ -196,7 +201,8 @@ IProcessor::Status ResizeByHashTransform::prepareGenerate()
             continue;
         }
 
-        output.push(std::move(chunk));
+        output.pushRef(chunk);
+        was_output_processed[chunk_number] = true;
     }
 
     if (all_outputs_processed)
@@ -216,12 +222,11 @@ void ResizeByHashTransform::work()
     if (!chunk_info)
         throw Exception("ResizeByHashTransform expected ChunkInfo for input chunk", ErrorCodes::LOGICAL_ERROR);
 
-    output_chunks = std::move(chunk_info->chunks);
+    output_chunks.swap(chunk_info->chunks);
     if (output_chunks.size() != outputs.size())
         throw Exception("ResizeByHashTransform expected " + std::to_string(outputs.size()) + " chunks from for input" +
                         " but got " + std::to_string(output_chunks.size()), ErrorCodes::LOGICAL_ERROR);
 
-    input_chunk.clear();
 }
 
 }

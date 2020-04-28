@@ -158,11 +158,11 @@ IProcessor::Status IMergingTransformBase::prepare()
             if (!input.hasData())
                 return Status::NeedData;
 
-            auto chunk = input.pull();
-            if (!chunk.hasRows() && !input.isFinished())
+            input.pull(state.input_chunk);
+            if (!state.input_chunk.hasRows() && !input.isFinished())
                 return Status::NeedData;
 
-            state.input_chunk = std::move(chunk);
+            state.has_input = true;
         }
 
         state.need_data = false;

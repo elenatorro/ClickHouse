@@ -15,7 +15,7 @@ class SplittingByHashTransform : public ISimpleTransform
 public:
     SplittingByHashTransform(const Block & header, size_t num_outputs_, ColumnNumbers key_columns_);
     String getName() const override { return "SplittingByHash"; }
-    void transform(Chunk &) override;
+    void transform(Chunk & input_chunk, Chunk & output_chunk) override;
 
 private:
     size_t num_outputs;
@@ -40,6 +40,7 @@ public:
 private:
     Chunk input_chunk;
     Chunks output_chunks;
+    std::vector<char> was_output_processed;
 
     bool is_generating_phase = false;
 

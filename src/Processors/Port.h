@@ -59,6 +59,12 @@ protected:
             /// Note: std::variant can be used. But move constructor for it can't be inlined.
             Chunk chunk;
             std::exception_ptr exception;
+
+            void swap(Data & other)
+            {
+                chunk.swap(other.chunk);
+                std::swap(exception, other.exception);
+            }
         };
 
     private:
@@ -272,7 +278,7 @@ private:
 public:
     using Port::Port;
 
-    Data ALWAYS_INLINE pullData(bool set_not_needed = false)
+    void ALWAYS_INLINE pullData(Data & res_data, bool set_not_needed = false)
     {
         if (!set_not_needed)
             updateVersion();
@@ -297,17 +303,34 @@ public:
             throw Exception(msg, ErrorCodes::LOGICAL_ERROR);
         }
 
-        return std::move(*data);
+        data->swap(res_data);
+    }
+
+    Data ALWAYS_INLINE pullData(bool set_not_needed = false)
+    {
+        Data res_data;
+        pullData(res_data, set_not_needed);
+        return res_data;
+    }
+
+    void ALWAYS_INLINE pull(Chunk & res_chunk, bool set_not_needed = false)
+    {
+        Data res_data;
+        res_chunk.swap(res_data.chunk);
+
+        pullData(res_data, set_not_needed);
+
+        if (res_data.exception)
+            std::rethrow_exception(res_data.exception);
+
+        res_chunk.swap(res_data.chunk);
     }
 
     Chunk ALWAYS_INLINE pull(bool set_not_needed = false)
     {
-        auto data_ = pullData(set_not_needed);
-
-        if (data_.exception)
-            std::rethrow_exception(data_.exception);
-
-        return std::move(data_.chunk);
+        Chunk res_chunk;
+        pull(res_chunk, set_not_needed);
+        return res_chunk;
     }
 
     bool ALWAYS_INLINE isFinished() const
@@ -388,6 +411,14 @@ private:
 public:
     using Port::Port;
 
+    void ALWAYS_INLINE pushRef(Chunk & chunk)
+    {
+        Data ref_data;
+        ref_data.chunk.swap(chunk);
+        pushDataRef(ref_data);
+        ref_data.chunk.swap(chunk);
+    }
+
     void ALWAYS_INLINE push(Chunk chunk)
     {
         pushData({.chunk = std::move(chunk), .exception = {}});
@@ -398,7 +429,7 @@ public:
         pushData({.chunk = {}, .exception = std::move(exception)});
     }
 
-    void ALWAYS_INLINE pushData(Data data_)
+    void ALWAYS_INLINE pushDataRef(Data & data_)
     {
         if (unlikely(!data_.exception && data_.chunk.getNumColumns() != header.columns()))
         {
@@ -417,9 +448,11 @@ public:
         assumeConnected();
 
         std::uintptr_t flags = 0;
-        *data = std::move(data_);
+        data->swap(data_);
         state->push(data, flags);
     }
+
+    void ALWAYS_INLINE pushData(Data data_) { pushDataRef(data_); }
 
     void ALWAYS_INLINE finish()
     {

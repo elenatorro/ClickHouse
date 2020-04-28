@@ -29,10 +29,10 @@ ISimpleTransform::Status ISimpleTransform::prepare()
     }
 
     /// Output if has data.
-    if (transformed)
+    if (has_output)
     {
-        output.pushData(std::move(current_data));
-        transformed = false;
+        output.pushDataRef(output_data);
+        has_output = false;
 
         if (!no_more_data_needed)
             return Status::PortFull;
@@ -61,14 +61,15 @@ ISimpleTransform::Status ISimpleTransform::prepare()
         if (!input.hasData())
             return Status::NeedData;
 
-        current_data = input.pullData(set_input_not_needed_after_read);
+        input.pullData(input_data, set_input_not_needed_after_read);
         has_input = true;
 
-        if (current_data.exception)
+        if (input_data.exception)
         {
             /// Skip transform in case of exception.
+            input_data.swap(output_data);
             has_input = false;
-            transformed = true;
+            has_output = true;
 
             /// No more data needed. Exception will be thrown (or swallowed) later.
             input.setNotNeeded();
@@ -81,29 +82,29 @@ ISimpleTransform::Status ISimpleTransform::prepare()
 
 void ISimpleTransform::work()
 {
-    if (current_data.exception)
+    if (input_data.exception)
         return;
 
     try
     {
-        transform(current_data.chunk);
+        transform(input_data.chunk, output_data.chunk);
     }
     catch (DB::Exception &)
     {
-        current_data.exception = std::current_exception();
-        transformed = true;
+        output_data.exception = std::current_exception();
+        has_output = true;
         has_input = false;
         return;
     }
 
     has_input = !needInputData();
 
-    if (!skip_empty_chunks || current_data.chunk)
-        transformed = true;
+    if (!skip_empty_chunks || output_data.chunk)
+        has_output = true;
 
-    if (transformed && !current_data.chunk && getOutputPort().getHeader())
+    if (has_output && !output_data.chunk && getOutputPort().getHeader())
         /// Support invariant that chunks must have the same number of columns as header.
-        current_data.chunk = Chunk(getOutputPort().getHeader().cloneEmpty().getColumns(), 0);
+        output_data.chunk = Chunk(getOutputPort().getHeader().cloneEmpty().getColumns(), 0);
 }
 
 }

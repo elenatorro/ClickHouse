@@ -34,6 +34,7 @@ protected:
     {
         Chunk output_chunk;
         Chunk input_chunk;
+        bool has_input = false;
         bool is_finished = false;
         bool need_data = false;
         size_t next_input_to_read = 0;
@@ -81,11 +82,12 @@ public:
         if (!state.init_chunks.empty())
             algorithm.initialize(std::move(state.init_chunks));
 
-        if (state.input_chunk)
+        if (state.has_input)
         {
             // std::cerr << "Consume chunk with " << state.input_chunk.getNumRows()
             //           << " for input " << state.next_input_to_read << std::endl;
-            algorithm.consume(std::move(state.input_chunk), state.next_input_to_read);
+            algorithm.consume(state.input_chunk, state.next_input_to_read);
+            state.has_input = false;
         }
 
         IMergingAlgorithm::Status status = algorithm.merge();
