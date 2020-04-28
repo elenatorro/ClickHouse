@@ -227,6 +227,7 @@ void ResizeByHashTransform::work()
         throw Exception("ResizeByHashTransform expected " + std::to_string(outputs.size()) + " chunks from for input" +
                         " but got " + std::to_string(output_chunks.size()), ErrorCodes::LOGICAL_ERROR);
 
+    was_output_processed.assign(output_chunks.size(), false);
 }
 
 }
